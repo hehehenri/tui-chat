@@ -5,8 +5,29 @@ use std::{
 
 pub const MAX_SIZE: usize = 1024;
 
+pub struct TransportMessage {
+    pub addr: SocketAddr,
+    pub len: usize,
+    pub header: u8,
+    pub content: Vec<u8>,
+}
+
+impl TransportMessage {
+    fn new(addr: SocketAddr, len: usize, bytes: &[u8]) -> Self {
+        let header = bytes[1];
+        let content = bytes[1..].to_vec();
+
+        TransportMessage {
+            addr,
+            len,
+            header,
+            content,
+        }
+    }
+}
+
 pub trait Transport {
-    fn receive(&self) -> io::Result<Vec<u8>>;
+    fn receive(&self) -> io::Result<TransportMessage>;
     fn send_to(&self, message: Vec<u8>, addr: SocketAddr) -> io::Result<()>;
 }
 
@@ -23,11 +44,12 @@ impl UdpTransport {
 }
 
 impl Transport for UdpTransport {
-    fn receive(&self) -> io::Result<Vec<u8>> {
+    fn receive(&self) -> io::Result<TransportMessage> {
         let mut buf = [0; MAX_SIZE];
-        let (len, _) = self.socket.recv_from(&mut buf)?;
-        let message = buf[..len].to_vec();
+        let (len, addr) = self.socket.recv_from(&mut buf)?;
+        let bytes = buf[..len].to_vec();
 
+        let message = TransportMessage::new(addr, len, &bytes);
         Ok(message)
     }
 
