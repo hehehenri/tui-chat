@@ -1,24 +1,28 @@
-use std::{
-    io::{self, IoSlice},
-    net::{Ipv4Addr, UdpSocket},
-};
+use std::net::SocketAddr;
 
 use server::Server;
 use transport::UdpTransport;
+use uuid::Uuid;
 
+mod message;
 mod server;
 mod transport;
 
-type PeerId = [u8; 20];
+type PeerId = Uuid;
 
-struct PeerAddr {
-    ip: Ipv4Addr,
-    port: u16,
-}
-
+#[derive(Debug)]
 struct Peer {
     id: PeerId,
-    addr: PeerAddr,
+    addr: SocketAddr,
+}
+
+impl Peer {
+    fn new(addr: SocketAddr) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            addr,
+        }
+    }
 }
 
 fn main() {
