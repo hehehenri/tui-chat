@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use serde::Deserialize;
 use server::Server;
 use transport::UdpTransport;
 use uuid::Uuid;
@@ -10,7 +11,7 @@ mod transport;
 
 type PeerId = Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct Peer {
     id: PeerId,
     addr: SocketAddr,

@@ -8,21 +8,16 @@ pub const MAX_SIZE: usize = 1024;
 pub struct TransportMessage {
     pub addr: SocketAddr,
     pub len: usize,
-    pub header: u8,
-    pub content: Vec<u8>,
+    pub content: String,
 }
 
 impl TransportMessage {
-    fn new(addr: SocketAddr, len: usize, bytes: &[u8]) -> Self {
-        let header = bytes[1];
-        let content = bytes[1..].to_vec();
+    fn new(addr: SocketAddr, len: usize, bytes: &[u8]) -> io::Result<Self> {
+        let content = String::from_utf8(bytes.to_vec())
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;
 
-        TransportMessage {
-            addr,
-            len,
-            header,
-            content,
-        }
+        let message = TransportMessage { addr, len, content };
+        Ok(message)
     }
 }
 
@@ -49,7 +44,7 @@ impl Transport for UdpTransport {
         let (len, addr) = self.socket.recv_from(&mut buf)?;
         let bytes = buf[..len].to_vec();
 
-        let message = TransportMessage::new(addr, len, &bytes);
+        let message = TransportMessage::new(addr, len, &bytes)?;
         Ok(message)
     }
 

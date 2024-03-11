@@ -3,9 +3,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{message::Message, transport::Transport, PeerAddr, PeerId};
+use crate::{message::Message, transport::Transport, Peer, PeerId};
 
-type Peers = BTreeMap<PeerId, PeerAddr>;
+type Peers = BTreeMap<PeerId, Peer>;
 
 pub struct Server {
     transport: Box<dyn Transport>,
