@@ -27,9 +27,13 @@ impl Peer {
     }
 }
 
+const PORT: u16 = 6969;
+
 fn main() {
-    let transport = UdpTransport::new("0.0.0.0:6969").expect("failed to create transport layer");
+    let url = format!("0.0.0.0:{}", PORT);
+    let transport = UdpTransport::new(&url).expect("failed to create transport layer");
     let mut server = Server::new(Box::new(transport));
 
+    println!("INFO: listening to UDP datagrams at {}", url);
     server.listen();
 }
