@@ -1,4 +1,7 @@
 # TuiChat
+<p align="center">
+   <img src="https://github.com/nothenrin/tui-chat/assets/23015763/f97dc8d3-d978-4bef-ad9a-94178c295ec0" alt="meme" height="400" />
+</p>
 
 ## Overview
 
