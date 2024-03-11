@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{transport::Transport, PeerAddr, PeerId};
+use crate::{message::Message, transport::Transport, PeerAddr, PeerId};
 
 type Peers = BTreeMap<PeerId, PeerAddr>;
 
@@ -24,8 +24,30 @@ impl Server {
 impl Server {
     pub fn listen(&self) {
         loop {
-            let message = self.transport.receive();
+            let incoming_message = match self.transport.receive() {
+                Ok(bytes) => bytes,
+                Err(err) => {
+                    eprintln!("failed to receive message: {}", err.to_string());
+                    continue;
+                }
+            };
+
+            let message = match Message::try_from(incoming_message) {
+                Ok(message) => message,
+                Err(err) => {
+                    eprintln!("failed to decode message: {}", err.to_string());
+                    continue;
+                }
+            };
+
             dbg!(message);
+        }
+    }
+
+    fn handle(&mut self, message: Message) {
+        match message {
+            Message::Join(message) => todo!(),
+            _ => todo!(),
         }
     }
 }
