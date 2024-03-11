@@ -2,7 +2,7 @@ use crate::{transport::TransportMessage, Peer};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct Join(Peer);
+pub struct Join(pub Peer);
 
 impl From<TransportMessage> for Join {
     fn from(message: TransportMessage) -> Self {

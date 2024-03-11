@@ -1,17 +1,18 @@
 use std::net::SocketAddr;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use server::Server;
 use transport::UdpTransport;
 use uuid::Uuid;
 
+mod handlers;
 mod message;
 mod server;
 mod transport;
 
 type PeerId = Uuid;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct Peer {
     id: PeerId,
     addr: SocketAddr,
@@ -28,7 +29,7 @@ impl Peer {
 
 fn main() {
     let transport = UdpTransport::new("0.0.0.0:6969").expect("failed to create transport layer");
-    let server = Server::new(Box::new(transport));
+    let mut server = Server::new(Box::new(transport));
 
     server.listen();
 }

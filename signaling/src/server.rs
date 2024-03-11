@@ -1,28 +1,34 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
-use crate::{message::Message, transport::Transport, Peer, PeerId};
+use crate::{handlers::join, message::Message, transport::Transport, Peer};
 
-type Peers = BTreeMap<PeerId, Peer>;
+// TODO: use something like R2
+pub type Peers = Vec<Peer>;
+
+#[derive(Default)]
+pub struct Context {
+    pub peers: Arc<Mutex<Peers>>,
+}
 
 pub struct Server {
     transport: Box<dyn Transport>,
-    peers: Arc<Mutex<Peers>>,
+    context: Context,
 }
 
 impl Server {
     pub fn new(transport: Box<dyn Transport>) -> Self {
-        let peers = Peers::default();
-        let peers = Arc::new(Mutex::new(peers));
+        let context = Context::default();
 
-        Self { transport, peers }
+        Self { transport, context }
     }
-}
 
-impl Server {
-    pub fn listen(&self) {
+    pub fn handle(&mut self, message: Message) {
+        match message {
+            Message::Join(join) => join::handle(join, &self.context, &self.transport),
+        }
+    }
+
+    pub fn listen(&mut self) {
         loop {
             let incoming_message = match self.transport.receive() {
                 Ok(bytes) => bytes,
@@ -40,14 +46,7 @@ impl Server {
                 }
             };
 
-            dbg!(message);
-        }
-    }
-
-    fn handle(&mut self, message: Message) {
-        match message {
-            Message::Join(message) => todo!(),
-            _ => todo!(),
+            self.handle(message)
         }
     }
 }
