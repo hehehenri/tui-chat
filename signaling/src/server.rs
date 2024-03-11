@@ -22,15 +22,15 @@ impl Server {
         Self { transport, context }
     }
 
-    pub fn handle(&mut self, message: Message) {
+    pub async fn handle(&mut self, message: Message) {
         match message {
-            Message::Join(join) => join::handle(join, &self.context, &self.transport),
+            Message::Join(join) => join::handle(join, &self.context, &self.transport).await,
         }
     }
 
-    pub fn listen(&mut self) {
+    pub async fn listen(&mut self) {
         loop {
-            let incoming_message = match self.transport.receive() {
+            let incoming_message = match self.transport.receive().await {
                 Ok(bytes) => bytes,
                 Err(err) => {
                     eprintln!("failed to receive message: {}", err.to_string());
@@ -46,7 +46,7 @@ impl Server {
                 }
             };
 
-            self.handle(message)
+            self.handle(message).await
         }
     }
 }

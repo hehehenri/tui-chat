@@ -1,7 +1,7 @@
-use std::{
-    io,
-    net::{SocketAddr, UdpSocket},
-};
+use std::{io, net::SocketAddr};
+
+use async_trait::async_trait;
+use tokio::net::UdpSocket;
 
 pub const MAX_SIZE: usize = 1024;
 
@@ -21,9 +21,10 @@ impl TransportMessage {
     }
 }
 
+#[async_trait]
 pub trait Transport {
-    fn receive(&self) -> io::Result<TransportMessage>;
-    fn send_to(&self, message: Vec<u8>, addr: SocketAddr) -> io::Result<()>;
+    async fn receive(&self) -> io::Result<TransportMessage>;
+    async fn send_to(&self, message: Vec<u8>, addr: SocketAddr) -> io::Result<()>;
 }
 
 pub struct UdpTransport {
@@ -31,25 +32,26 @@ pub struct UdpTransport {
 }
 
 impl UdpTransport {
-    pub fn new(addr: &str) -> io::Result<Self> {
-        let socket = UdpSocket::bind(addr)?;
+    pub async fn new(addr: &str) -> io::Result<Self> {
+        let socket = UdpSocket::bind(addr).await?;
 
         Ok(Self { socket })
     }
 }
 
+#[async_trait]
 impl Transport for UdpTransport {
-    fn receive(&self) -> io::Result<TransportMessage> {
+    async fn receive(&self) -> io::Result<TransportMessage> {
         let mut buf = [0; MAX_SIZE];
-        let (len, addr) = self.socket.recv_from(&mut buf)?;
+        let (len, addr) = self.socket.recv_from(&mut buf).await?;
         let bytes = buf[..len].to_vec();
 
         let message = TransportMessage::new(addr, len, &bytes)?;
         Ok(message)
     }
 
-    fn send_to(&self, message: Vec<u8>, addr: SocketAddr) -> io::Result<()> {
-        self.socket.send_to(&message, addr)?;
+    async fn send_to(&self, message: Vec<u8>, addr: SocketAddr) -> io::Result<()> {
+        self.socket.send_to(&message, addr).await?;
 
         Ok(())
     }
