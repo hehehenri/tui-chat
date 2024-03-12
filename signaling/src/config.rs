@@ -21,9 +21,11 @@ pub struct RedisConfig {
 
 impl RedisConfig {
     pub fn from_env() -> Self {
+        let ttl = get_var("REDIS_TTL");
+
         Self {
-            url: get_var("AWS_REGION"),
-            ttl: SetExpiry::EX(5 * 60),
+            url: get_var("REDIS_URL"),
+            ttl: SetExpiry::EX(ttl),
         }
     }
 }
