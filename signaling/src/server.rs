@@ -1,13 +1,33 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use crate::{handlers::join, message::Message, transport::Transport, Peer};
+use redis::Client;
 
-// TODO: use something like R2
-pub type Peers = Vec<Peer>;
+use crate::{
+    config::Config, handlers::join, message::Message, repositories::Repositories,
+    transport::Transport,
+};
 
-#[derive(Default)]
 pub struct Context {
-    pub peers: Arc<Mutex<Peers>>,
+    pub redis_client: Arc<Client>,
+    pub config: Config,
+    pub repositories: Repositories,
+}
+
+impl Context {
+    pub fn new() -> Self {
+        let config = Config::from_env();
+        let redis =
+            redis::Client::open(config.redis.url.clone()).expect("failed to connect to redis");
+        let redis = Arc::new(redis);
+
+        let repositories = Repositories::new(&redis, &config);
+
+        Self {
+            config,
+            repositories,
+            redis_client: redis,
+        }
+    }
 }
 
 pub struct Server {
@@ -17,14 +37,14 @@ pub struct Server {
 
 impl Server {
     pub fn new(transport: Box<dyn Transport>) -> Self {
-        let context = Context::default();
+        let context = Context::new();
 
         Self { transport, context }
     }
 
-    pub async fn handle(&mut self, message: Message) {
+    async fn handle(&mut self, message: Message) {
         match message {
-            Message::Join(join) => join::handle(join, &self.context, &self.transport).await,
+            Message::Join(join) => join::handle(join, &self.transport, &self.context).await,
         }
     }
 

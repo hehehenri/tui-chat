@@ -5,14 +5,16 @@ use server::Server;
 use transport::UdpTransport;
 use uuid::Uuid;
 
+mod config;
 mod handlers;
 mod message;
+mod repositories;
 mod server;
 mod transport;
 
 type PeerId = Uuid;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 struct Peer {
     id: PeerId,
     addr: SocketAddr,
@@ -35,6 +37,7 @@ async fn main() {
     let transport = UdpTransport::new(&url)
         .await
         .expect("failed to create transport layer");
+
     let mut server = Server::new(Box::new(transport));
 
     println!("INFO: listening to UDP datagrams at {}", url);

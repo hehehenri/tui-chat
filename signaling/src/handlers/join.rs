@@ -1,10 +1,23 @@
-use crate::{message::Join, server::Context, transport::Transport};
+use crate::message::Join;
+use crate::server::Context;
+use crate::transport::Transport;
 
-pub async fn handle(Join(new_peer): Join, ctx: &Context, transport: &Box<dyn Transport>) {
-    let mut peers = ctx.peers.lock().unwrap();
-    peers.push(new_peer);
+pub async fn handle(Join(new_peer): Join, transport: &Box<dyn Transport>, ctx: &Context) {
+    match ctx.repositories.peer_repository.store(&new_peer).await {
+        Ok(()) => println!("INFO: new peer added to the list of connections"),
+        Err(err) => {
+            eprintln!("ERROR: {}", err.to_string());
+            return;
+        }
+    }
 
-    let peers = peers.clone();
+    let peers = match ctx.repositories.peer_repository.all().await {
+        Ok(peers) => peers,
+        Err(err) => {
+            eprintln!("ERROR: {}", err.to_string());
+            return;
+        }
+    };
 
     for peer in peers.iter() {
         match serde_json::to_string(&peers) {
