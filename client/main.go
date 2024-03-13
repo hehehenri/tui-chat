@@ -3,13 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
-
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/google/uuid"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func main() {
@@ -20,63 +19,14 @@ func main() {
 	}
 }
 
+type ErrorMessage error
+
 type Model struct {
-	client   Peer
-	peers    []Peer
-	messages []Message
 	view     viewport.Model
 	input    textarea.Model
-}
-
-func (m Model) sendMessage(content string) {
-	message := Message{
-		sender:  m.client,
-		content: content,
-	}
-
-	m.messages = append(m.messages, message)
-}
-
-func (Model) Init() tea.Cmd {
-	return textarea.Blink
-}
-
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var inputCmd tea.Cmd
-	var viewCmd tea.Cmd
-
-	m.input, inputCmd = m.input.Update(msg)
-	m.view, viewCmd = m.view.Update(msg)
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			fmt.Println(m.input.Value())
-			return m, tea.Quit
-		case tea.KeyEnter:
-			m.sendMessage(m.input.View())
-
-			content := ""
-			for _, message := range m.messages {
-				content += message.view() + "\n"
-			}
-
-			m.view.SetContent(content)
-			m.view.GotoBottom()
-			m.input.Reset()
-		}
-	}
-
-	return m, tea.Batch(inputCmd, viewCmd)
-}
-
-func (m Model) View() string {
-	return fmt.Sprintf(
-		"%s\n\n%s",
-		m.view.View(),
-		m.input.View(),
-	) + "\n\n"
+	messages []string
+	style    lipgloss.Style
+	err      error
 }
 
 func initialModel() Model {
@@ -90,33 +40,65 @@ func initialModel() Model {
 	input.SetWidth(30)
 	input.SetHeight(3)
 
+	// Remove cursor line styling
+	input.FocusedStyle.CursorLine = lipgloss.NewStyle()
+
 	input.ShowLineNumbers = false
 
 	view := viewport.New(30, 5)
-	view.SetContent(`Welcome to the chat!
+	view.SetContent(`Welcome to the chat room!
 Type a message and press Enter to send.`)
 
 	input.KeyMap.InsertNewline.SetEnabled(false)
 
 	return Model{
-		client:   Peer{},
-		peers:    []Peer{},
-		messages: []Message{},
-		view:     view,
 		input:    input,
+		messages: []string{},
+		view:     view,
+		style:    lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
+		err:      nil,
 	}
 }
 
-type Message struct {
-	sender  Peer
-	content string
+func (m Model) Init() tea.Cmd {
+	return textarea.Blink
 }
 
-func (m Message) view() string {
-	return fmt.Sprint("%s: %s", m.sender.id, m.content)
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		tiCmd tea.Cmd
+		vpCmd tea.Cmd
+	)
+
+	m.input, tiCmd = m.input.Update(msg)
+	m.view, vpCmd = m.view.Update(msg)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
+			fmt.Println(m.input.Value())
+			return m, tea.Quit
+		case tea.KeyEnter:
+			m.messages = append(m.messages, m.style.Render("You: ")+m.input.Value())
+			m.view.SetContent(strings.Join(m.messages, "\n"))
+			m.input.Reset()
+			m.view.GotoBottom()
+		}
+
+	// We handle errors just like any other message
+	case ErrorMessage:
+		m.err = msg
+		return m, nil
+	}
+
+	return m, tea.Batch(tiCmd, vpCmd)
 }
 
-type Peer struct {
-	id   uuid.UUID
-	addr net.UDPAddr
+func (m Model) View() string {
+	return fmt.Sprintf(
+		"%s\n\n%s",
+		m.view.View(),
+		m.input.View(),
+	) + "\n\n"
 }
